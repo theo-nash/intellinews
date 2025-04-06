@@ -81,34 +81,17 @@ export class NewsKnowledgeManager {
      */
     async checkForDuplicate(newsItem: NewsItem): Promise<boolean> {
         try {
-            // Try to find by URL first (exact match)
-            if (newsItem.url) {
-                const results = await this.searchNewsByMetadata({
-                    key: "url",
-                    value: newsItem.url
-                });
+            // Generate a stable ID based on URL or content hash to avoid duplicates
+            const idBase = newsItem.url || `${newsItem.title}-${newsItem.source}`;
+            const id = stringToUuid(idBase) as UUID;
 
-                if (results.length > 0) {
-                    return true;
-                }
+            let results = await this.ragKnowledgeManager.getKnowledge({ id: id, agentId: this.runtime.agentId });
+            if (results && results.length > 0) {
+                return true; // Duplicate found
             }
 
-            // Then try by title (semantic search)
-            const results = await this.ragKnowledgeManager.getKnowledge({
-                query: newsItem.title,
-                limit: 5,
-                agentId: this.runtime.agentId
-            });
+            return false;
 
-            // Check if any result is very similar by title
-            return results.some(item => {
-                const metadata = item.content.metadata || {};
-                const itemTitle = metadata.title as string || "";
-
-                // Simple fuzzy matching - either exact match or very high similarity
-                return itemTitle.toLowerCase() === newsItem.title.toLowerCase() ||
-                    (item.similarity && item.similarity > 0.95);
-            });
         } catch (error) {
             elizaLogger.error("Error checking for duplicates:", error);
             return false; // If error, assume not duplicate to be safe
