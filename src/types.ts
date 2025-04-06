@@ -5,6 +5,7 @@ export interface NewsItem {
     url: string;
     publishedAt: Date;
     topics: string[];
+    rawContent?: string;
 }
 
 export interface NewsSearchOptions {

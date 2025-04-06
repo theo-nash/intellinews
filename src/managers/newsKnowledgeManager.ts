@@ -61,7 +61,9 @@ export class NewsKnowledgeManager {
                         topics: newsItem.topics,
                         // Required fields for RAGKnowledgeItem
                         isMain: true,
-                        isShared: false
+                        isShared: false,
+                        content: newsItem.content,
+                        rawContent: newsItem.rawContent || "",
                     }
                 },
                 createdAt: Date.now()

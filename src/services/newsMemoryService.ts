@@ -254,7 +254,8 @@ export class NewsMemoryService extends Service {
                         source: result.source || (result.url ? new URL(result.url).hostname : "unknown"),
                         url: result.url,
                         publishedAt: extractedDate,
-                        topics: [topic]
+                        topics: [topic],
+                        rawContent: result.rawContent || "",
                     };
 
                     // Check for duplicates

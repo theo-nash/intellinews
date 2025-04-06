@@ -2,7 +2,8 @@ import {
     Service,
     type IAgentRuntime,
     ServiceType,
-    elizaLogger
+    elizaLogger,
+    CacheManager
 } from "@elizaos/core";
 import { tavily } from "@tavily/core";
 
@@ -52,6 +53,15 @@ export class WebSearchService extends Service implements IWebSearchService {
     private runtime: IAgentRuntime;
     private initialized: boolean = false;
 
+    // Default TTL for search results (in seconds)
+    private static readonly DEFAULT_TTL = 1800; // 30 minutes
+
+    // Shorter TTL for news-related searches (in seconds)
+    private static readonly NEWS_TTL = 900; // 15 minutes
+
+    // Maximum age for cached results with days=1 (very recent) in seconds
+    private static readonly RECENT_NEWS_TTL = 300; // 5 minutes
+
     async initialize(_runtime: IAgentRuntime): Promise<void> {
         if (this.initialized) return;
 
@@ -78,6 +88,35 @@ export class WebSearchService extends Service implements IWebSearchService {
         return WebSearchService.serviceType;
     }
 
+    // Generate a deterministic cache key based on search parameters
+    private generateCacheKey(query: string, searchParams: any): string {
+        // Create a deterministic string representation of search parameters
+        // Sort keys to ensure consistent order regardless of how options were provided
+        const paramString = JSON.stringify(
+            searchParams,
+            Object.keys(searchParams).sort()
+        );
+
+        // Create a key with a prefix for namespacing
+        return `websearch:${query}:${paramString}`;
+    }
+
+    // Determine appropriate TTL based on search parameters
+    private determineTTL(searchParams: any): number {
+        // Very recent news searches get shortest TTL
+        if (searchParams.topic === 'news' && searchParams.days <= 1) {
+            return WebSearchService.RECENT_NEWS_TTL;
+        }
+
+        // News searches get shorter TTL
+        if (searchParams.topic === 'news') {
+            return WebSearchService.NEWS_TTL;
+        }
+
+        // Default TTL for other searches (general searches, etc.)
+        return WebSearchService.DEFAULT_TTL;
+    }
+
     async search(
         query: string,
         options?: SearchOptions,
@@ -97,7 +136,36 @@ export class WebSearchService extends Service implements IWebSearchService {
                 days: options.days ?? 3
             };
 
+            // Generate cache key
+            const cacheKey = this.generateCacheKey(query, searchParams);
+
+            // Try to get from cache first
+            if (this.runtime.cacheManager) {
+                try {
+                    const cachedResult = await this.runtime.cacheManager.get<SearchResponse>(cacheKey);
+                    if (cachedResult) {
+                        elizaLogger.debug(`[WebSearchService] Cache hit for: "${query}"`);
+                        return cachedResult;
+                    }
+                } catch (cacheError) {
+                    // Log cache error but continue with API call
+                    elizaLogger.warn(`[WebSearchService] Cache retrieval error: ${cacheError.message}`);
+                }
+            }
+
             const response = await this.tavilyClient.search(query, searchParams);
+
+            // Store in cache with appropriate TTL if cache is available
+            if (this.runtime.cacheManager) {
+                try {
+                    const ttl = this.determineTTL(searchParams);
+                    await this.runtime.cacheManager.set(cacheKey, response, { expires: Date.now() + ttl * 1e3 });
+                    elizaLogger.debug(`[WebSearchService] Cached response for "${query}" with TTL: ${ttl}s`);
+                } catch (cacheError) {
+                    // Log cache error but still return the response
+                    elizaLogger.warn(`[WebSearchService] Cache storage error: ${cacheError.message}`);
+                }
+            }
 
             elizaLogger.debug(`[WebSearchService] Search returned ${response.results?.length || 0} results`);
             return response;

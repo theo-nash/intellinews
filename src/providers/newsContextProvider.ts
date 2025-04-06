@@ -30,7 +30,7 @@ export const newsContextProvider: Provider = {
             const formattedNews = relevantNews.map(item => {
                 const metadata = item.content.metadata || {};
                 const dateStr = new Date(metadata.publishedAt as number).toLocaleDateString();
-                return `[${dateStr}] ${metadata.title as string}\nSource: ${metadata.source as string}`;
+                return `[${dateStr}] ${metadata.title as string}\nSource: ${metadata.source as string}\nContent: ${metadata.content as string}\nURL: ${metadata.url as string}`;
             }).join("\n\n");
 
             return `# Relevant News Context\n${formattedNews}`;
