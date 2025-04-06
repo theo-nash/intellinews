@@ -229,10 +229,18 @@ export class NewsMemoryService extends Service {
                     let extractedDate: Date | null = null;
                     if (!result.publishedDate) {
                         try {
-                            extractedDate = new Date(result.publishedDate);
+                            if (result.rawContent) {
+                                extractedDate = extractDateFromContent(result.rawContent);
+                                if (!extractedDate) {
+                                    extractedDate = extractDateFromContent(result.content);
+                                }
+                                if (!extractedDate) {
+                                    extractedDate = new Date();
+                                }
+                            }
                         }
                         catch (e) {
-                            elizaLogger.debut("[NewsMemoryService] Error parsing published date:", e);
+                            elizaLogger.debug("[NewsMemoryService] Error parsing published date:", e);
                             extractedDate = new Date();
                         }
                     } else {
