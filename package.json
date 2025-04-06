@@ -1,0 +1,72 @@
+{
+  "name": "@plugins/intellinews",
+  "version": "0.1.0",
+  "descpription": "News plugin for ElizaOS for fetching and retaining memory about current events and news.",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "@elizaos/source": "./src/index.ts",
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "discord.js": "14.16.3",
+    "glob": "11.0.0",
+    "@tavily/core": "0.0.2",
+    "@cliqz/adblocker-playwright": "1.34.0",
+    "capsolver-npm": "2.0.2",
+    "playwright": "1.48.2"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "1.1.3",
+    "tsup": "8.3.5",
+    "vitest": "1.6.1"
+  },
+  "scripts": {
+    "build": "tsup --format esm --dts",
+    "dev": "tsup --format esm --dts --watch",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "peerDependencies": {
+    "whatwg-url": "7.1.0"
+  },
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "agentConfig": {
+    "pluginType": "elizaos:client:1.0.0",
+    "pluginParameters": {
+      "NEWS_FETCH_INTERVAL_MINUTES": {
+        "type": "number",
+        "description": "Interval in minutes between news fetches",
+        "default": 60
+      },
+      "NEWS_TOPICS": {
+        "type": "string",
+        "description": "Comma-separated list of topics to fetch news about",
+        "default": "world news,technology,science"
+      },
+      "NEWS_RETENTION_DAYS": {
+        "type": "number",
+        "description": "Number of days to retain news items",
+        "default": 30
+      },
+      "NEWS_SEARCH_LIMIT": {
+        "type": "number",
+        "description": "Maximum number of news items to fetch per topic",
+        "default": 5
+      }
+    }
+  }
+}
